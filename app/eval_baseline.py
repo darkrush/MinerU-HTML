@@ -51,6 +51,12 @@ def main():
         help='Path to the model file (if required by extractor)'
     )
     parser.add_argument(
+        '--state_machine',
+        type=str,
+        default=None,
+        help='State machine version to use'
+    )
+    parser.add_argument(
         '--batch_size',
         type=int,
         default=None,
@@ -127,7 +133,7 @@ def main():
         args.task_dir,
         baseline_dataset,
         args.extractor_name,
-        {'model_path': args.model_path, 'state_machine': 'v2'},
+        {'model_path': args.model_path, 'state_machine': args.state_machine},
         args.batch_size,
         args.gpu_num,
         args.cpu_num,

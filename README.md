@@ -31,7 +31,7 @@ For basic usage of Dripper, install with core dependencies only:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd MinerU-HTML
+cd Dripper
 
 # Install the package with core dependencies only
 # Dependencies from requirements.txt are automatically installed
@@ -185,7 +185,7 @@ python app/eval_with_answer.py \
 ## Project Structure
 
 ```
-MinerU-HTML/
+Dripper/
 ├── dripper/                 # Main package
 │   ├── api.py              # Dripper API class
 │   ├── server.py           # FastAPI server
