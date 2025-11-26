@@ -1,6 +1,6 @@
-# Dripper
+# Dripper(MinerU-HTML)
 
-**Dripper** is an advanced HTML main content extraction tool based on Large Language Models (LLMs). It provides a complete pipeline for extracting primary content from HTML pages using LLM-based classification and state machine-guided generation.
+**Dripper(MinerU-HTML)** is an advanced HTML main content extraction tool based on Large Language Models (LLMs). It provides a complete pipeline for extracting primary content from HTML pages using LLM-based classification and state machine-guided generation.
 
 ## Features
 
@@ -16,7 +16,7 @@
 
 ### Prerequisites
 
-- Python >= 3.12
+- Python >= 3.10
 - CUDA-capable GPU (recommended for LLM inference)
 - Sufficient memory for model loading
 
@@ -30,12 +30,12 @@ For basic usage of Dripper, install with core dependencies only:
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd Dripper
+git clone https://github.com/opendatalab/MinerU-HTML
+cd MinerU-HTML
 
 # Install the package with core dependencies only
 # Dependencies from requirements.txt are automatically installed
-pip install -e .
+pip install .
 ```
 
 #### Installation with Baseline Extractors (for Evaluation)
@@ -61,7 +61,15 @@ This will install additional libraries required for baseline extractors:
 
 ## Quick Start
 
-### 1. Using the Python API
+### 1. Download the model
+
+visit our model at [MinerU-HTML](https://huggingface.co/opendatalab/MinerU-HTML) and download the model, you can use the following command to download the model:
+
+```bash
+huggingface-cli download opendatalab/MinerU-HTML
+```
+
+### 2. Using the Python API
 
 ```python
 from dripper.api import Dripper
@@ -71,7 +79,7 @@ dripper = Dripper(
     config={
         'model_path': '/path/to/your/model',
         'tp': 1,  # Tensor parallel size
-        'state_machine': 'v2',  # or 'v1', or None
+        'state_machine': None,  # or 'v1', or 'v2
         'use_fall_back': True,
         'raise_errors': False,
     }
@@ -83,10 +91,9 @@ result = dripper.process(html_content)
 
 # Access results
 main_html = result[0].main_html
-main_content = result[0].main_content
 ```
 
-### 2. Using the REST API Server
+### 3. Using the REST API Server
 
 ```bash
 # Start the server
@@ -168,18 +175,41 @@ python app/eval_baseline.py \
 #### Two-Step Evaluation
 
 ```bash
-# Step 1: Generate predictions
-python app/run_inference.py \
-    --bench /path/to/benchmark.jsonl \
-    --task_dir /path/to/output \
-    --model_path /path/to/model \
-    --state_machine v2
+# if inferencen with no state machine, set VLLM_USE_V1=1
+export VLLM_USE_V1=1
+# if use state machine, set VLLM_USE_V1=0
+# export VLLM_USE_V1=0
 
-# Step 2: Evaluate with answers
+RESULT_PATH=/path/to/output
+EXP_NAME=MinerU-HTML
+MODEL_PATH=/path/to/model
+BENCH_DATA=/path/to/benchmark.jsonl
+
+# Step 1: Prepare for evaluation
 python app/eval_with_answer.py \
-    --bench /path/to/benchmark.jsonl \
-    --task_dir /path/to/output \
-    --answer /path/to/answers.jsonl
+    --bench $BENCH_DATA \
+    --task_dir $RESULT_PATH/$MODEL_NAME \
+    --step 1 --cpus 128 --force_update
+
+# Step 2: Run inference
+python app/run_inference.py \
+    --task_dir $RESULT_PATH/$MODEL_NAME \
+    --model_path $MODEL_PATH \
+    --output_path $RESULT_PATH/$MODEL_NAME/res.jsonl \
+    --no_logits
+
+# Step 3： process results
+python app/process_res.py \
+    --response $RESULT_PATH/$MODEL_NAME/res.jsonl \
+    --answer $RESULT_PATH/$MODEL_NAME/ans.jsonl \
+    --error $RESULT_PATH/$MODEL_NAME/err.jsonl
+
+# Step 4: Evaluate with answers
+python app/eval_with_answer.py \
+    --bench $BENCH_DATA \
+    --task_dir $RESULT_PATH/$MODEL_NAME \
+    --answer $RESULT_PATH/$MODEL_NAME/ans.jsonl \
+    --step 2 --cpus 128 --force_update
 ```
 
 ## Project Structure
@@ -296,7 +326,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Acknowledgments
 
 - Built on top of [vLLM](https://github.com/vllm-project/vllm) for efficient LLM inference
-- Uses [Ray](https://www.ray.io/) for distributed processing
 - Uses [Trafilatura](https://github.com/adbar/trafilatura) for fallback extraction
 - Finetuned on [Qwen3](https://github.com/QwenLM/Qwen3)
 - Inspired by various HTML content extraction research
