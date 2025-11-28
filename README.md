@@ -79,7 +79,7 @@ dripper = Dripper(
     config={
         'model_path': '/path/to/your/model',
         'tp': 1,  # Tensor parallel size
-        'state_machine': None,  # or 'v1', or 'v2
+        'state_machine': None,
         'use_fall_back': True,
         'raise_errors': False,
     }
@@ -99,12 +99,12 @@ main_html = result[0].main_html
 # Start the server
 python -m dripper.server \
     --model_path /path/to/your/model \
-    --state_machine v2 \
+    --state_machine None \
     --port 7986
 
 # Or use environment variables
 export DRIPPER_MODEL_PATH=/path/to/your/model
-export DRIPPER_STATE_MACHINE=v2
+export DRIPPER_STATE_MACHINE=None
 export DRIPPER_PORT=7986
 python -m dripper.server
 ```
@@ -129,7 +129,7 @@ curl http://localhost:7986/health
 | --------------- | ---- | ------------ | ------------------------------------------------ |
 | `model_path`    | str  | **Required** | Path to the LLM model directory                  |
 | `tp`            | int  | 1            | Tensor parallel size for model inference         |
-| `state_machine` | str  | None         | State machine version: `'v1'`, `'v2'`, or `None` |
+| `state_machine` | str  | None         | State machine version:  `None` |
 | `use_fall_back` | bool | True         | Enable fallback to trafilatura on errors         |
 | `raise_errors`  | bool | False        | Raise exceptions on errors (vs returning None)   |
 | `debug`         | bool | False        | Enable debug logging                             |
@@ -138,7 +138,7 @@ curl http://localhost:7986/health
 ### Environment Variables
 
 - `DRIPPER_MODEL_PATH`: Path to the LLM model
-- `DRIPPER_STATE_MACHINE`: State machine version (`v1`, `v2`, or empty)
+- `DRIPPER_STATE_MACHINE`: State machine version (default:None)
 - `DRIPPER_PORT`: Server port number (default: 7986)
 - `VLLM_USE_V1`: Must be set to `'0'` when using state machine
 
@@ -159,96 +159,6 @@ for result in results:
     print(result.main_html)
 ```
 
-### Evaluation
-
-#### Baseline Evaluation
-
-```bash
-python app/eval_baseline.py \
-    --bench /path/to/benchmark.jsonl \
-    --task_dir /path/to/output \
-    --extractor_name dripper-md \
-    --default_config gpu \
-    --model_path /path/to/model
-```
-
-#### Two-Step Evaluation
-
-```bash
-# if inferencen with no state machine, set VLLM_USE_V1=1
-export VLLM_USE_V1=1
-# if use state machine, set VLLM_USE_V1=0
-# export VLLM_USE_V1=0
-
-RESULT_PATH=/path/to/output
-EXP_NAME=MinerU-HTML
-MODEL_PATH=/path/to/model
-BENCH_DATA=/path/to/benchmark.jsonl
-
-# Step 1: Prepare for evaluation
-python app/eval_with_answer.py \
-    --bench $BENCH_DATA \
-    --task_dir $RESULT_PATH/$MODEL_NAME \
-    --step 1 --cpus 128 --force_update
-
-# Step 2: Run inference
-python app/run_inference.py \
-    --task_dir $RESULT_PATH/$MODEL_NAME \
-    --model_path $MODEL_PATH \
-    --output_path $RESULT_PATH/$MODEL_NAME/res.jsonl \
-    --no_logits
-
-# Step 3： process results
-python app/process_res.py \
-    --response $RESULT_PATH/$MODEL_NAME/res.jsonl \
-    --answer $RESULT_PATH/$MODEL_NAME/ans.jsonl \
-    --error $RESULT_PATH/$MODEL_NAME/err.jsonl
-
-# Step 4: Evaluate with answers
-python app/eval_with_answer.py \
-    --bench $BENCH_DATA \
-    --task_dir $RESULT_PATH/$MODEL_NAME \
-    --answer $RESULT_PATH/$MODEL_NAME/ans.jsonl \
-    --step 2 --cpus 128 --force_update
-```
-
-## Project Structure
-
-```
-Dripper/
-├── dripper/                 # Main package
-│   ├── api.py              # Dripper API class
-│   ├── server.py           # FastAPI server
-│   ├── base.py             # Core data structures
-│   ├── exceptions.py        # Custom exceptions
-│   ├── inference/          # LLM inference modules
-│   │   ├── inference.py    # Generation functions
-│   │   ├── prompt.py       # Prompt generation
-│   │   ├── logits.py       # Response parsing
-│   │   └── logtis_processor/  # State machine logits processors
-│   ├── process/            # HTML processing
-│   │   ├── simplify_html.py
-│   │   ├── map_to_main.py
-│   │   └── html_utils.py
-│   ├── eval/               # Evaluation modules
-│   │   ├── metric.py       # ROUGE and item-level metrics
-│   │   ├── eval.py         # Evaluation functions
-│   │   ├── process.py      # Processing utilities
-│   │   └── benckmark.py    # Benchmark data structures
-│   └── eval_baselines/     # Baseline extractors
-│       ├── base.py         # Evaluation framework
-│       └── baselines/       # Extractor implementations
-├── app/                    # Application scripts
-│   ├── eval_baseline.py    # Baseline evaluation script
-│   ├── eval_with_answer.py # Two-step evaluation
-│   ├── run_inference.py    # Inference script
-│   └── process_res.py     # Result processing
-├── requirements.txt        # Core Python dependencies (auto-installed)
-├── baselines.txt          # Optional dependencies for baseline extractors
-├── LICENCE                # Apache License 2.0
-├── NOTICE                 # Copyright and attribution notices
-└── setup.py               # Package setup (handles dependency installation)
-```
 
 ## Supported Extractors
 
@@ -263,50 +173,6 @@ Dripper supports various baseline extractors for comparison:
 - **GNE**: General News Extractor
 - **Crawl4ai**: AI-powered web content extraction
 - And more...
-
-## Evaluation Metrics
-
-- **ROUGE Scores**: ROUGE-N precision, recall, and F1 scores
-- **Item-Level Metrics**: Per-tag-type (main/other) precision, recall, F1, and accuracy
-- **HTML Output**: Extracted main HTML for visual inspection
-
-## Development
-
-### Running Tests
-
-```bash
-# Add test commands here when available
-```
-
-### Code Style
-
-The project uses pre-commit hooks for code quality. Install them:
-
-```bash
-pre-commit install
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **VLLM_USE_V1 Error**: When using state machine, ensure `VLLM_USE_V1=0` is set:
-
-   ```bash
-   export VLLM_USE_V1=0
-   ```
-
-2. **Model Loading Errors**: Verify model path and ensure sufficient GPU memory
-
-3. **Import Errors**: Ensure the package is properly installed:
-
-   ```bash
-   # Reinstall the package (this will automatically install dependencies from requirements.txt)
-   pip install -e .
-
-   # If you need baseline extractors for evaluation:
-   pip install -e .[baselines]
-   ```
 
 ## License
 
