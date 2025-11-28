@@ -86,7 +86,7 @@ dripper = Dripper(
 )
 
 # Extract main content from HTML
-html_content = "<html>...</html>"
+html_content = "<html><body>Hello World</body></html>"
 result = dripper.process(html_content)
 
 # Access results
@@ -115,7 +115,7 @@ Then make requests to the API:
 # Extract main content
 curl -X POST "http://localhost:7986/extract" \
   -H "Content-Type: application/json" \
-  -d '{"html": "<html>...</html>", "url": "https://example.com"}'
+  -d '{"html": "<html><body>Hello World</body></html>", "url": "https://example.com"}'
 
 # Health check
 curl http://localhost:7986/health
@@ -152,7 +152,7 @@ from dripper.api import Dripper
 dripper = Dripper(config={'model_path': '/path/to/model'})
 
 # Process multiple HTML strings
-html_list = ["<html>...</html>", "<html>...</html>"]
+html_list = ["<html><body>Hello,</body></html>", "<html><body>World!</body></html>"]
 results = dripper.process(html_list)
 
 for result in results:
