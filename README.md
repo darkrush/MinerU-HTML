@@ -129,7 +129,7 @@ curl http://localhost:7986/health
 | --------------- | ---- | ------------ | ------------------------------------------------ |
 | `model_path`    | str  | **Required** | Path to the LLM model directory                  |
 | `tp`            | int  | 1            | Tensor parallel size for model inference         |
-| `state_machine` | str  | None         | State machine version:  `None` |
+| `state_machine` | str  | None         | State machine version |
 | `use_fall_back` | bool | True         | Enable fallback to trafilatura on errors         |
 | `raise_errors`  | bool | False        | Raise exceptions on errors (vs returning None)   |
 | `debug`         | bool | False        | Enable debug logging                             |
