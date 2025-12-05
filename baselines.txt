@@ -7,4 +7,4 @@ gne==0.3.1
 goose3==3.1.20
 boilerpy3==1.0.7
 crawl4ai==0.7.7
-pip install https://github.com/opendatalab/magic-html/releases/download/magic_html-0.1.5-released/magic_html-0.1.5-py3-none-any.whl
+https://github.com/opendatalab/magic-html/releases/download/magic_html-0.1.5-released/magic_html-0.1.5-py3-none-any.whl
